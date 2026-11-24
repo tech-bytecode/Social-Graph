@@ -1,74 +1,367 @@
-# Large Network Analysis with Neo4j and Python
+
+# Meridian Relationship Atlas
+
+A graph-based relationship discovery and network analytics platform built with Python, Neo4j, and Cypher.
 
 ## Overview
 
-This repository contains a Python project for analyzing a Large Social Network dataset using Neo4j, a highly scalable graph database. The dataset used in this project is Stanford's "Social Network: MOOC User Action Dataset", which provides valuable insights into user interactions within online learning environments. The project includes scripts for creating the database, loading the dataset, executing, and benchmarking queries on the graph database.
+Meridian Relationship Atlas explores how graph database technology can power member discovery, relationship exploration, and personalized recommendations within professional networking communities.
 
-### Dataset
-The MOOC user action dataset represents the actions taken by users on a popular MOOC platform. The actions are represented as a directed, temporal network. The nodes represent users and course activities (targets), and edges represent the actions by users on the targets. The actions have attributes and timestamps. To protect user privacy, we anonimize the users and timestamps are standardized to start from timestamp 0. The dataset is directed, temporal, and attributed.
+The project provides a foundation for building membership platforms where users can discover relevant peers, explore shared interests, identify common activities, and build meaningful professional connections.
 
-Additionally, each action has a binary label, representing whether the user dropped-out of the course after this action, i.e., whether this is last action of the user.
+Using Neo4j, the platform models complex relationships as a connected graph rather than relying exclusively on traditional relational database joins.
 
-| Dataset Statistics           |                   |
-|------------------------------|-------------------|
-| Number of users              | 7,047             |
-| Number of targets            | 97                |
-| Number of actions            | 411,749           |
-| Number of positive labels    | 4,066             |
-| Timestamp                    | seconds           |
+## Key Features
 
+- Graph-based member and activity modeling
+- Relationship discovery and network traversal
+- Large-scale interaction data ingestion
+- Cypher query execution and performance benchmarking
+- Batch processing and transaction management
+- Database indexing and uniqueness constraints
+- Temporal interaction analysis
+- Anonymized user data processing
+- Extensible foundation for member recommendations
+
+## Use Cases
+
+The graph architecture can be extended to support:
+
+- Professional membership portals
+- Executive networking communities
+- Member directory and peer discovery
+- Shared-interest recommendations
+- Community and chapter discovery
+- Event-based networking
+- Member engagement analytics
+- AI-powered knowledge and relationship discovery
+
+## Technology Stack
+
+| Component | Technology |
+|---|---|
+| Programming Language | Python 3.x |
+| Graph Database | Neo4j |
+| Query Language | Cypher |
+| Database Connectivity | Neo4j Python Driver |
+| Data Processing | Python, CSV, TSV |
+| Performance Analysis | Neo4j Query Statistics |
+| Data Ingestion | Batch Transactions, LOAD CSV |
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    A[Network Interaction Dataset] --> B[Python Data Processing]
+    B --> C[Batch Data Ingestion]
+    C --> D[(Neo4j Graph Database)]
+    D --> E[Cypher Query Engine]
+    E --> F[Relationship Discovery]
+    E --> G[Network Analytics]
+    E --> H[Performance Benchmarking]
+    F --> I[Future Membership Portal API]
+    G --> I
+```
+
+## Graph Data Model
+
+The current implementation represents users, activities, and their interactions as a connected graph.
+
+### Current Graph Model
+
+```mermaid
+flowchart LR
+    A[User A] -->|Action| C[Activity]
+    B[User B] -->|Action| C
+    A -->|Action| D[Activity 2]
+    B -->|Action| D
+```
+
+| Entity | Description |
+|---|---|
+| User | An anonymized network participant |
+| Target | An activity or interaction destination |
+| Action | A timestamped interaction between a user and a target |
+
+### Proposed Membership Graph Model
+
+For a professional membership platform, the existing graph model can be extended to include:
+
+```mermaid
+flowchart TD
+    M[Member] -->|HAS_INTEREST| I[Interest]
+    M -->|WORKS_AT| O[Organization]
+    M -->|BELONGS_TO| C[Community]
+    M -->|ATTENDED| E[Event]
+    M -->|CONNECTED_TO| P[Peer Member]
+    O -->|OPERATES_IN| D[Industry]
+    P -->|HAS_INTEREST| I
+    P -->|ATTENDED| E
+```
+
+This structure would support multi-hop relationship queries, shared-interest discovery, professional recommendations, and community exploration.
+
+## Relationship Discovery
+
+Graph traversal makes it possible to discover users who interact with similar activities without requiring complex relational joins.
+
+The following example illustrates how shared activities could be used to identify relevant peers using the existing graph model:
+
+```cypher
+MATCH (u:User {id: $userId})-[:Action]->(t:Target)
+      <-[:Action]-(peer:User)
+WHERE peer <> u
+WITH peer, count(DISTINCT t) AS sharedActivities
+RETURN peer.id AS peerId, sharedActivities
+ORDER BY sharedActivities DESC
+LIMIT 20
+```
+
+For an extended membership graph, shared interests could support more personalized member recommendations:
+
+```cypher
+MATCH (m:Member {id: $memberId})
+      -[:HAS_INTEREST]->(i:Interest)
+      <-[:HAS_INTEREST]-(peer:Member)
+WHERE peer <> m
+WITH peer, collect(DISTINCT i.name) AS sharedInterests
+WHERE size(sharedInterests) >= 2
+RETURN peer.id AS memberId,
+       peer.name AS memberName,
+       sharedInterests,
+       size(sharedInterests) AS relevanceScore
+ORDER BY relevanceScore DESC
+LIMIT 20
+```
+
+The second query is an illustrative example for the proposed membership schema, not part of the current dataset implementation.
+
+## Dataset
+
+The project uses the User Action Dataset as an anonymized network interaction dataset for validating graph modeling, relationship traversal, and ingestion performance.
+
+Although the source dataset represents online learning interactions, its connected structure provides a useful test environment for membership and community engagement applications.
+
+### Dataset Statistics
+
+| Metric | Value |
+|---|---:|
+| Network Participants | 7,047 |
+| Activity Targets | 97 |
+| Recorded Interactions | 411,749 |
+| Positive Dropout Labels | 4,066 |
+| Timestamp Resolution | Seconds |
 
 ### Dataset Files
-| File                     | Description                                                                       |
-|--------------------------|-----------------------------------------------------------------------------------|
-| mooc_actions.tsv         | Time-ordered sequence of user actions.                                            |
-| mooc_action_features.tsv| Features associated with each action.                                             |
-| mooc_action_labels.tsv  | Binary label associated with each action, indicating whether the student drops out after the action. |
 
-![Graph example](misc/graph.png)
-Purple nodes represent users, orange nodes represent targets, and edges represent actions taken by users on targets.
+| File | Description |
+|---|---|
+| `mooc_actions.tsv` | Time-ordered user interactions |
+| `mooc_action_features.tsv` | Interaction-level attributes |
+| `mooc_action_labels.tsv` | Binary dropout labels |
 
-### Python Files Information:
+### Graph Visualization
 
-- **queries.py**: Executes and benchmarks queries by connecting to Neo4j utilizing `result_consume_after` for time measurement.
+![Relationship Graph](misc/graph.png)
 
-- **graphdb.py**: Establishes connection with the Neo4j server and includes methods for query execution, batch execution, and driver closing.
+Purple nodes represent network participants, orange nodes represent activity targets, and relationships represent recorded interactions.
 
-- **createGraphDB.py**: Initializes the database as explained below.
+## Repository Structure
 
-- **loadData.py**: Includes helper methods for reading and parsing the MOOC dataset files, as well as creating Cypher queries and CSV files. It is used by `createGraphDB.py`.
+```text
+meridian-relationship-atlas/
+├── act-mooc/
+│   ├── mooc_actions.tsv
+│   ├── mooc_action_features.tsv
+│   └── mooc_action_labels.tsv
+├── misc/
+│   └── graph.png
+├── graphdb.py
+├── createGraphDB.py
+├── loadData.py
+├── queries.py
+├── bulk-insert-actions.cypher
+├── queries.cypher
+├── indices.cypher
+├── constraints.cypher
+└── README.md
+```
 
-### Cypher Files Information:
+## Core Components
 
-- **bulk-insert-actions.cypher**: Contains a query for bulk loading the action records appearing in the `actions.csv` file created by `createGraphDB.py`. It uses transactions and is faster than insertion via Python.
+### Database Connectivity
 
-- **queries.cypher**: Contains queries.
+`graphdb.py`
 
-- **users.cypher** and **targets.cypher**: Files that can be generated by `loadData.py` for direct execution within the Neo4j browser. They include queries for creating the `:User` and `:Target` nodes, respectively.
+Manages Neo4j database connections, query execution, batch operations, and driver lifecycle management.
 
-- **indices.cypher**: Contains queries for creating indexes on `:User` and `:Target` on the `id` field. Necessary for fast execution of match-merge queries.
+### Graph Initialization
 
-- **constraints.cypher**: Contains queries that create constraints on `:User` and `:Target` on the `id` field.
+`createGraphDB.py`
 
-### Instructions 
-To create the database in Neo4j, execute the `createGraphDB.py` file. Upon execution, nodes `:User` and `:Target` are created in the database, along with indexes on `:User` and `:Target` on the `id` field.
-- If the variable `createRelationshipsFromPython` is `False`, the `actions.csv` file is created in the `act-mooc` folder, containing the `:Action` relationships. In this case, the CSV file must be moved to the directory where the database is stored: `(project_name)/dbmss/dbms-***-***.../import`. Then run the `bulk-insert-actions.cypher` file in Neo4j browser.
-- If the variable is `True`, the script creates batches of actions and executes them in transactions.
+Initializes the graph database, creates user and activity nodes, and configures indexes for efficient relationship creation.
 
-##### Execution via the Cypher script `bulk-insert-actions`, is optimized and runs in a few milliseconds, unlike the insertion from `createGraphDB.py`, which takes a few minutes!
+### Data Processing
 
-###### The password used to connect to the Neo4j database in `queries.py` and `createGraphDB.py` is: `moocmooc` and can be changed within the scripts.
+`loadData.py`
 
-#### Requirements
+Processes raw interaction datasets, transforms records into graph-compatible structures, and generates CSV files and Cypher statements for ingestion.
 
-To run this project, you need to have the following dependencies installed:
+### Query Execution and Benchmarking
+
+`queries.py`
+
+Executes graph queries and collects database timing statistics using the Neo4j result summary.
+
+### Bulk Relationship Ingestion
+
+`bulk-insert-actions.cypher`
+
+Imports interaction relationships using CSV-based ingestion and transactional processing.
+
+### Database Optimization
+
+`indices.cypher` and `constraints.cypher`
+
+Configure indexes and uniqueness constraints to support efficient node lookup, relationship creation, and data integrity.
+
+## Getting Started
+
+### Prerequisites
 
 - Python 3.x
 - Neo4j Database
-- Python library: `neo4j`
+- Neo4j Python Driver
 
-You can install the Python dependencies using pip:
+### Install Dependencies
 
 ```bash
 pip install neo4j
 ```
+
+### Configure Neo4j
+
+Start a local Neo4j instance and configure the database connection settings in the Python scripts.
+
+```text
+URI: bolt://localhost:7687
+Username: neo4j
+Password: your-local-password
+```
+
+For production environments, credentials should be managed through environment variables or a secure secrets manager rather than hardcoded in source files.
+
+### Initialize the Graph
+
+```bash
+python createGraphDB.py
+```
+
+This creates the user and activity nodes and initializes the indexes required for relationship ingestion.
+
+### Load Relationships
+
+The project supports two ingestion strategies.
+
+**Python batch ingestion**
+
+Set `createRelationshipsFromPython` to `True` in `createGraphDB.py` to insert relationships through batched database transactions.
+
+**Cypher bulk ingestion**
+
+Set `createRelationshipsFromPython` to `False` to generate the `actions.csv` file.
+
+Move the generated CSV file into the Neo4j import directory and execute:
+
+```text
+bulk-insert-actions.cypher
+```
+
+CSV-based bulk ingestion is generally more efficient for large interaction datasets.
+
+### Execute Queries
+
+```bash
+python queries.py
+```
+
+Additional graph queries can be executed through Neo4j Browser using `queries.cypher`.
+
+## Performance and Scalability
+
+The project explores several approaches to improving graph database performance:
+
+- Indexed node lookups
+- Uniqueness constraints
+- Batch transaction processing
+- CSV-based relationship ingestion
+- Efficient graph traversal
+- Query execution benchmarking
+- Reduced database round trips
+
+Neo4j's `EXPLAIN` and `PROFILE` commands can also be used to inspect execution plans and identify expensive graph operations.
+
+## Privacy and Security Considerations
+
+The current implementation uses anonymized interaction data.
+
+A production membership platform would additionally require:
+
+- Authentication and role-based authorization
+- Member-level visibility controls
+- Permission-aware graph traversal
+- Field-level access restrictions
+- Parameterized Cypher queries
+- Secure credential management
+- Audit logging
+- Membership-scoped data retrieval
+
+These controls should be enforced at the API and database query layers rather than relying solely on frontend restrictions.
+
+## Future Development
+
+The project is designed as a foundation for a more comprehensive professional networking and membership platform.
+
+### Membership Portal
+
+- React and TypeScript frontend
+- Member profiles and searchable directory
+- Community and event discovery
+- Interactive relationship visualization
+
+### GraphQL API
+
+- Node.js and Apollo Server
+- GraphQL schemas and resolvers
+- Neo4j GraphQL integration
+- Cursor-based pagination
+- DataLoader and Redis caching
+- Field-level authorization
+
+### AI-Powered Member Discovery
+
+- Natural-language member search
+- OpenAI embeddings
+- Neo4j vector search
+- Graph-based retrieval-augmented generation
+- Personalized peer recommendations
+- Permission-aware context retrieval
+- Source-grounded AI responses
+
+### Production Infrastructure
+
+- Docker containerization
+- Automated testing
+- GitHub Actions CI/CD
+- Cloud deployment
+- Application monitoring and observability
+
+## Project Status
+
+The current implementation focuses on graph database initialization, large-scale interaction ingestion, Cypher queries, and network performance analysis.
+
+The membership portal, GraphQL API, and AI-powered discovery capabilities represent proposed extensions to the existing graph analytics foundation.
+
+---
+
+Meridian Relationship Atlas — Exploring connected data to enable meaningful professional relationships.

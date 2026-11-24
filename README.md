@@ -1,4 +1,4 @@
-# Stanford Large Network Analysis with Neo4j and Python
+# Large Network Analysis with Neo4j and Python
 
 ## Overview
 
@@ -17,7 +17,6 @@ Additionally, each action has a binary label, representing whether the user drop
 | Number of positive labels    | 4,066             |
 | Timestamp                    | seconds           |
 
-More info about the dataset can be found [here](https://snap.stanford.edu/data/act-mooc.html).
 
 ### Dataset Files
 | File                     | Description                                                                       |
